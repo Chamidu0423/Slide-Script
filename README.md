@@ -75,7 +75,7 @@ The syntax is designed to be intuitive:
 # Welcome to SlideScript
 ## The fastest way to create presentations
 
-- Use {} to separate slides
+- Use "{" to separate slides
 - Use # for titles, ## for subtitles
 - Use - for bullet points
 }
