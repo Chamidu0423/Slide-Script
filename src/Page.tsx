@@ -8,7 +8,7 @@ const PresentationMaker = () => {
 ## The fastest way to create presentations
 
 Write your slides using simple syntax:
-- Use {} to separate slides
+- Use "{" to separate slides
 - Use # for titles, ## for subtitles
 - Use - for bullet points
 - Use **bold** and *italic* text
