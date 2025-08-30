@@ -36,7 +36,11 @@ To get a local copy up and running, follow these simple steps.
     ```sh
     npm install
     ```
-4.  Run the development server:
+    or
+    ```sh
+    npm install --force
+    ```
+5.  Run the development server:
     ```sh
     npm run dev
     ```
