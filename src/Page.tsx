@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Play, Edit3, Eye, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import PptxGenJS from 'pptxgenjs';
+import { ChevronLeft, ChevronRight, Play, Edit3, Eye, Maximize2, Download } from 'lucide-react';
 
 const PresentationMaker = () => {
   const [input, setInput] = useState(`{
@@ -65,52 +66,78 @@ Perfect for technical presentations!
 
 *Made with ❤️ by the SlideScript team*
 }`);
-  
-  type Slide = { title: string; subtitle: string; bullets: string[]; content: any[] };
-  const [slides, setSlides] = useState<Slide[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [mode, setMode] = useState('edit'); // 'edit' or 'present'
   const [isFullscreen, setIsFullscreen] = useState(false);
-
-  // Parse slides from input
+  
+  const [slides, setSlides] = useState<any[]>([]);
+  
   useEffect(() => {
-    const slideRegex = /\{([^}]*)\}/gs;
-    const matches = [...input.matchAll(slideRegex)];
-    const parsedSlides = matches.map(match => parseSlideContent(match[1].trim()));
-    setSlides(parsedSlides.length > 0 ? parsedSlides : []);
-    if (currentSlide >= parsedSlides.length) {
-      setCurrentSlide(Math.max(0, parsedSlides.length - 1));
-    }
+    const parseSlides = () => {
+      const slideRegex = /\{([^}]*)\}/gs;
+      const matches = [...input.matchAll(slideRegex)];
+      const newSlides = matches.map(match => {
+        const content = match[1].trim();
+        const lines = content.split('\n').filter(line => line.trim() !== '');
+        
+        const slide = {
+          title: '',
+          subtitle: '',
+          bullets: [] as string[],
+          content: [] as any[],
+        };
+
+        let inCodeBlock = false;
+        let codeBlockContent = '';
+        let codeLang = '';
+
+        lines.forEach(line => {
+          if (line.trim().startsWith('```')) {
+            if (inCodeBlock) {
+              slide.content.push({ type: 'code', text: codeBlockContent.trim(), lang: codeLang });
+              inCodeBlock = false;
+              codeBlockContent = '';
+              codeLang = '';
+            } else {
+              inCodeBlock = true;
+              codeLang = line.trim().substring(3);
+            }
+            return;
+          }
+
+          if (inCodeBlock) {
+            codeBlockContent += line + '\n';
+            return;
+          }
+
+          const trimmed = line.trim();
+          if (trimmed.startsWith('# ')) {
+            slide.title = parseInlineMarkdown(trimmed.substring(2));
+          } else if (trimmed.startsWith('## ')) {
+            slide.subtitle = parseInlineMarkdown(trimmed.substring(3));
+          } else if (trimmed.startsWith('- ')) {
+            slide.bullets.push(parseInlineMarkdown(trimmed.substring(2)));
+          } else if (trimmed.startsWith('> ')) {
+            slide.content.push({ type: 'quote', text: parseInlineMarkdown(trimmed.substring(2)) });
+          } else if (trimmed.match(/^\d+\.\s/)) {
+            slide.content.push({ type: 'ordered', text: parseInlineMarkdown(trimmed.replace(/^\d+\.\s/, '')) });
+          } else if (trimmed) {
+            slide.content.push({ type: 'text', text: parseInlineMarkdown(trimmed) });
+          }
+        });
+        return slide;
+      });
+      setSlides(newSlides);
+    };
+    
+    parseSlides();
   }, [input]);
 
-  const parseSlideContent = (content: string) => {
-    const lines = content.split('\n').filter(line => line.trim());
-    const slide: { title: string; subtitle: string; bullets: string[]; content: any[] } = { title: '', subtitle: '', bullets: [], content: [] };
-    
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('# ')) {
-        slide.title = parseInlineMarkdown(trimmed.substring(2));
-      } else if (trimmed.startsWith('## ')) {
-        slide.subtitle = parseInlineMarkdown(trimmed.substring(3));
-      } else if (trimmed.startsWith('- ')) {
-        slide.bullets.push(parseInlineMarkdown(trimmed.substring(2)));
-      } else if (trimmed.startsWith('> ')) {
-        slide.content.push({ type: 'quote', text: parseInlineMarkdown(trimmed.substring(2)) });
-      } else if (trimmed.match(/^\d+\.\s/)) {
-        slide.content.push({ type: 'ordered', text: parseInlineMarkdown(trimmed.replace(/^\d+\.\s/, '')) });
-      } else if (trimmed.startsWith('```')) {
-        const lang = trimmed.substring(3);
-        slide.content.push({ type: 'code-start', lang });
-      } else if (trimmed === '```') {
-        slide.content.push({ type: 'code-end' });
-      } else if (trimmed) {
-        slide.content.push({ type: 'text', text: parseInlineMarkdown(trimmed) });
-      }
-    });
-    
-    return slide;
-  };
+  useEffect(() => {
+    if (currentSlide >= slides.length) {
+      setCurrentSlide(Math.max(0, slides.length - 1));
+    }
+  }, [slides.length, currentSlide]);
 
   const parseInlineMarkdown = (text: string) => {
     return text
@@ -120,9 +147,6 @@ Perfect for technical presentations!
   };
 
   const renderSlide = (slide: any, index: number) => {
-    let codeBlock = '';
-    let inCodeBlock = false;
-    
     return (
       <div key={index} className="w-full h-full flex flex-col justify-center items-center p-12 text-center">
         {slide.title && (
@@ -139,7 +163,7 @@ Perfect for technical presentations!
           />
         )}
         
-        {slide.bullets.length > 0 && (
+        {slide.bullets && slide.bullets.length > 0 && (
           <ul className="text-xl space-y-4 text-left max-w-2xl">
             {slide.bullets.map((bullet: string, i: number) => (
                 <li 
@@ -153,46 +177,38 @@ Perfect for technical presentations!
           </ul>
         )}
         
-        <div className="max-w-4xl">
-          {slide.content.map((item: any, i: number) => {
-            if (item.type === 'code-start') {
-              inCodeBlock = true;
-              codeBlock = '';
-              return null;
-            } else if (item.type === 'code-end') {
-              inCodeBlock = false;
-              const result = (
-                <div key={i} className="bg-gray-900 rounded-lg p-6 my-6 text-left">
-                  <pre className="text-green-400 text-sm overflow-x-auto">
-                    <code>{codeBlock}</code>
-                  </pre>
-                </div>
-              );
-              codeBlock = '';
-              return result;
-            } else if (inCodeBlock) {
-              codeBlock += item.text + '\n';
-              return null;
-            } else if (item.type === 'quote') {
-              return (
-                <blockquote key={i} className="border-l-4 border-blue-500 pl-6 my-6 text-xl italic text-gray-700">
-                  <span dangerouslySetInnerHTML={{ __html: item.text }} />
-                </blockquote>
-              );
-            } else if (item.type === 'ordered') {
-              return (
-                <div key={i} className="text-xl my-2 text-left max-w-2xl">
-                  <span dangerouslySetInnerHTML={{ __html: item.text }} />
-                </div>
-              );
-            } else {
-              return (
-                <p 
-                  key={i} 
-                  className="text-xl my-4 text-gray-700 max-w-3xl"
-                  dangerouslySetInnerHTML={{ __html: item.text }}
-                />
-              );
+        <div className="max-w-4xl text-left">
+          {slide.content && slide.content.map((item: any, i: number) => {
+            switch (item.type) {
+              case 'quote':
+                return (
+                  <blockquote key={i} className="border-l-4 border-blue-500 pl-6 my-6 text-xl italic text-gray-700">
+                    <span dangerouslySetInnerHTML={{ __html: item.text }} />
+                  </blockquote>
+                );
+              case 'ordered':
+                return (
+                  <div key={i} className="text-xl my-2 max-w-2xl">
+                     <span dangerouslySetInnerHTML={{ __html: item.text }} />
+                  </div>
+                );
+              case 'code':
+                return (
+                  <div key={i} className="bg-gray-900 rounded-lg p-6 my-6 text-left">
+                    <pre className="text-green-400 text-sm overflow-x-auto">
+                      <code>{item.text}</code>
+                    </pre>
+                  </div>
+                );
+              case 'text':
+              default:
+                return (
+                  <p 
+                    key={i} 
+                    className="text-xl my-4 text-gray-700 max-w-3xl"
+                    dangerouslySetInnerHTML={{ __html: item.text }}
+                  />
+                );
             }
           })}
         </div>
@@ -210,6 +226,31 @@ Perfect for technical presentations!
     if (currentSlide > 0) {
       setCurrentSlide(currentSlide - 1);
     }
+  };
+
+  const exportToPptx = () => {
+    const pptx = new PptxGenJS();
+
+    slides.forEach(slideData => {
+      const slide = pptx.addSlide();
+
+      const cleanTitle = slideData.title.replace(/<[^>]*>?/gm, '');
+      const cleanSubtitle = slideData.subtitle.replace(/<[^>]*>?/gm, '');
+
+      if (cleanTitle) {
+        slide.addText(cleanTitle, { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: 32, bold: true, align: 'center' });
+      }
+      if (cleanSubtitle) {
+        slide.addText(cleanSubtitle, { x: 0.5, y: 1.5, w: '90%', h: 1, fontSize: 24, align: 'center' });
+      }
+
+      const bulletPoints = slideData.bullets.map((bullet: string) => bullet.replace(/<[^>]*>?/gm, ''));
+      if (bulletPoints.length > 0) {
+        slide.addText(bulletPoints.join('\n'), { x: 1, y: 2.5, w: '80%', h: 3, fontSize: 18, bullet: true });
+      }
+    });
+
+    pptx.writeFile({ fileName: 'presentation.pptx' });
   };
 
   if (mode === 'present') {
@@ -282,7 +323,13 @@ Perfect for technical presentations!
           </div>
           
           <div className="flex items-center space-x-3">
-            
+            <button
+              onClick={exportToPptx}
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
+            >
+              <Download size={16} />
+              <span>Export PPTX</span>
+            </button>
             
             <button
               onClick={() => setMode('present')}
