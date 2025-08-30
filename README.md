@@ -25,26 +25,35 @@ To get a local copy up and running, follow these simple steps.
 ### Installation
 
 1.  Clone the repo:
+
     ```sh
     git clone https://github.com/Chamidu0423/Slide-Script.git
     ```
 2.  Navigate to the project directory:
+
     ```sh
     cd Slide-Script
     ```
 3.  Install NPM packages:
+
     ```sh
     npm install
     ```
     or
+    
     ```sh
     npm install --force
     ```
-5.  Run the development server:
+4.  Run the development server:
+
     ```sh
     npm run dev
     ```
-    The application will be available at `http://localhost:5173`.
+    The application will be available at
+    
+    ```
+    http://localhost:5173
+    ```
 
 ## Usage
 
