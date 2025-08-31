@@ -262,48 +262,52 @@ Perfect for technical presentations!
               {renderSlide(slides[currentSlide], currentSlide)}
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500 text-2xl">
+            <div className="w-full h-full flex items-center justify-center text-gray-500 text-base sm:text-xl lg:text-2xl px-4 text-center">
               No slides to display. Add content in curly braces {}
             </div>
           )}
         </div>
         
-        <div className="bg-gray-800 text-white p-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+        <div className="bg-gray-800 text-white p-2 sm:p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <button 
               onClick={prevSlide}
               disabled={currentSlide === 0}
-              className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={16} className="sm:hidden" />
+              <ChevronLeft size={20} className="hidden sm:block" />
             </button>
             
-            <span className="text-sm font-medium">
+            <span className="text-xs sm:text-sm font-medium">
               {currentSlide + 1} / {slides.length}
             </span>
             
             <button 
               onClick={nextSlide}
               disabled={currentSlide === slides.length - 1}
-              className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={16} className="sm:hidden" />
+              <ChevronRight size={20} className="hidden sm:block" />
             </button>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
             >
-              <Maximize2 size={20} />
+              <Maximize2 size={16} className="sm:hidden" />
+              <Maximize2 size={20} className="hidden sm:block" />
             </button>
             <button
               onClick={() => setMode('edit')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center space-x-2"
+              className="px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center space-x-1 sm:space-x-2"
             >
-              <Edit3 size={16} />
-              <span>Edit</span>
+              <Edit3 size={14} className="sm:hidden" />
+              <Edit3 size={16} className="hidden sm:block" />
+              <span className="text-sm sm:text-base">Edit</span>
             </button>
           </div>
         </div>
@@ -313,45 +317,56 @@ Perfect for technical presentations!
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-gray-200 px-3 sm:px-6 py-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <img src="/logo.png" alt="SlideScript" className="h-20 w-auto md:h-24" />
-            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <img src="/banner.png" alt="SlideScript" className="h-8 sm:h-12 w-auto md:h-14" />
+            <div className="bg-blue-100 text-blue-800 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
               {slides.length} slides
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1 sm:space-x-3">
             <button
               onClick={exportToPptx}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2"
+              className="hidden sm:flex px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors items-center space-x-2"
             >
               <Download size={16} />
               <span>Export PPTX</span>
             </button>
             
+            {/* Mobile export button - icon only */}
+            <button
+              onClick={exportToPptx}
+              className="sm:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Download size={18} />
+            </button>
+            
             <button
               onClick={() => setMode('present')}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              className="px-3 sm:px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-1 sm:space-x-2"
             >
-              <Play size={16} />
-              <span>Present</span>
+              <Play size={14} className="sm:hidden" />
+              <Play size={16} className="hidden sm:block" />
+              <span className="text-sm sm:text-base">Present</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="flex-1 flex">
-        <div className="w-1/2 border-r border-gray-200">
-          <div className="h-16 px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 flex items-center space-x-2 text-lg md:text-xl">
-              <Edit3 size={18} />
+      <div className="flex-1 flex flex-col lg:flex-row">
+        {/* Editor Section - Order 2 on mobile, Order 1 on large screens */}
+        <div className="w-full lg:w-1/2 lg:border-r border-gray-200 order-2 lg:order-1">
+          <div className="h-12 sm:h-16 px-3 sm:px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800 flex items-center space-x-1 sm:space-x-2 text-base sm:text-lg md:text-xl">
+              <Edit3 size={16} className="sm:hidden" />
+              <Edit3 size={18} className="hidden sm:block" />
               <span>Editor</span>
             </h2>
           </div>
-          <div className="px-4 pb-3 bg-gray-50">
-            <p className="text-sm text-gray-600">
+          <div className="px-3 sm:px-4 pb-1 sm:pb-2 bg-gray-50">
+            <p className="text-xs sm:text-sm text-gray-600">
               Use {'{}'} to separate slides. Support for # headings, - bullets, **bold**, *italic*, and ```code blocks```
             </p>
           </div>
@@ -359,30 +374,33 @@ Perfect for technical presentations!
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="w-full h-full p-6 font-mono text-sm resize-none border-0 focus:outline-none"
+            className="w-full h-full p-3 sm:p-6 font-mono text-xs sm:text-sm resize-none border-0 focus:outline-none"
             placeholder={`Type your presentation content here...\n\n{\n# My First Slide\n## This is a subtitle\n\n- First bullet point\n- Second bullet point\n}\n\n{\n# Second Slide\nContent goes here...\n}`}
-            style={{ minHeight: 'calc(100vh - 140px)' }}
+            style={{ minHeight: 'calc(50vh - 120px)', maxHeight: 'calc(100vh - 180px)' }}
           />
         </div>
 
-        <div className="w-1/2 bg-white">
-          <div className="h-16 px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800 flex items-center space-x-2 text-lg md:text-xl">
-              <Eye size={18} />
+        {/* Preview Section - Order 1 on mobile, Order 2 on large screens */}
+        <div className="w-full lg:w-1/2 bg-white flex flex-col order-1 lg:order-2 border-b lg:border-b-0 border-gray-200">
+          <div className="h-12 sm:h-16 px-3 sm:px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800 flex items-center space-x-1 sm:space-x-2 text-base sm:text-lg md:text-xl">
+              <Eye size={16} className="sm:hidden" />
+              <Eye size={18} className="hidden sm:block" />
               <span>Preview</span>
             </h2>
 
             {slides.length > 0 && (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
                 <button 
                   onClick={prevSlide}
                   disabled={currentSlide === 0}
                   className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={14} className="sm:hidden" />
+                  <ChevronLeft size={16} className="hidden sm:block" />
                 </button>
                 
-                <span className="text-sm text-gray-600 px-2">
+                <span className="text-xs sm:text-sm text-gray-600 px-1 sm:px-2">
                   {currentSlide + 1} / {slides.length}
                 </span>
                 
@@ -391,26 +409,27 @@ Perfect for technical presentations!
                   disabled={currentSlide === slides.length - 1}
                   className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={14} className="sm:hidden" />
+                  <ChevronRight size={16} className="hidden sm:block" />
                 </button>
               </div>
             )}
           </div>
           
-          <div className="relative" style={{ height: 'calc(100vh - 140px)' }}>
+          <div className="flex-1 relative overflow-hidden">
             {slides.length > 0 ? (
-              <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-                <div className="w-full h-full bg-white rounded-lg shadow-lg transform scale-75 origin-top-left" 
-                     style={{ width: '133.33%', height: '133.33%' }}>
+              <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
+                {/* On mobile, keep slide at 100% size to avoid extra whitespace; only oversize + scale at lg */}
+                <div className="bg-white rounded-lg shadow-lg transform origin-top-left w-full h-full lg:w-[133.33%] lg:h-[133.33%] scale-100 sm:scale-95 lg:scale-75">
                   {renderSlide(slides[currentSlide], currentSlide)}
                 </div>
               </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
                 <div className="text-center">
-                  <div className="text-6xl mb-4">📝</div>
-                  <p className="text-lg">Start typing to see your slides</p>
-                  <p className="text-sm mt-2">Use curly braces {} to separate slides</p>
+                  <div className="text-3xl sm:text-6xl mb-2 sm:mb-4">📝</div>
+                  <p className="text-base sm:text-lg">Start typing to see your slides</p>
+                  <p className="text-xs sm:text-sm mt-1 sm:mt-2">Use curly braces {} to separate slides</p>
                 </div>
               </div>
             )}
