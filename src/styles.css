@@ -1,3 +1,144 @@
+/* Slide-up animation for settings screen */
+.animate-slideup {
+	animation: slideup 0.4s cubic-bezier(0.4, 0.8, 0.2, 1);
+}
+
+@keyframes slideup {
+	from {
+		transform: translateY(100vh);
+		opacity: 0.5;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+/* Icon fade animation for settings card selection */
+.animate-iconFade {
+	animation: iconFade 2s ease-in-out;
+}
+
+@keyframes iconFade {
+	0% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	20% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	80% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	100% {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+}
+
+/* Processing overlay animations */
+.animate-processingFadeIn {
+	animation: processingFadeIn 0.5s ease-out forwards;
+}
+
+.animate-processingFadeOut {
+	animation: processingFadeOut 0.5s ease-in forwards;
+}
+
+@keyframes processingFadeIn {
+	from {
+		opacity: 0;
+		backdrop-filter: blur(0px);
+	}
+	to {
+		opacity: 1;
+		backdrop-filter: blur(8px);
+	}
+}
+
+@keyframes processingFadeOut {
+	from {
+		opacity: 1;
+		backdrop-filter: blur(8px);
+	}
+	to {
+		opacity: 0;
+		backdrop-filter: blur(0px);
+	}
+}
+
+/* GIF fade animations */
+.animate-gifFadeIn {
+	animation: gifFadeIn 0.6s ease-out forwards;
+}
+
+.animate-gifFadeOut {
+	animation: gifFadeOut 0.4s ease-in forwards;
+}
+
+@keyframes gifFadeIn {
+	from {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes gifFadeOut {
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+}
+
+/* Smooth slow blinking animation for processing GIF */
+.animate-slowBlink {
+	animation: slowBlink 2s ease-in-out infinite;
+}
+
+@keyframes slowBlink {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.3;
+	}
+}
+
+/* Shiny text animation */
+.animate-shinyText {
+	background: linear-gradient(90deg, 
+		rgba(255, 255, 255, 0.8) 0%, 
+		rgba(255, 255, 255, 1) 20%, 
+		rgba(255, 255, 255, 1) 40%, 
+		rgba(255, 255, 255, 0.8) 60%, 
+		rgba(255, 255, 255, 0.6) 100%
+	);
+	background-size: 200% 100%;
+	background-clip: text;
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	animation: shinyText 2.5s ease-in-out infinite;
+}
+
+@keyframes shinyText {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
 html, body, #root { height: 100%; }
 body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
 .min-h-screen { min-height: 100vh; }
