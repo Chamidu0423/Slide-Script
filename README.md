@@ -2,7 +2,7 @@
 
 SlideScript is a web-based presentation tool that allows you to create slides quickly and efficiently using a simple, markdown-like syntax. It's designed for speed and ease of use, letting you focus on your content.
 
-![SlideScript Screenshot](public/logo.png)
+![SlideScript Screenshot](public/banner.png)
 
 ## Features
 
