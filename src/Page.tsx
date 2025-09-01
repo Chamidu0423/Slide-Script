@@ -3,6 +3,15 @@ import SettingsScreen from './SettingsScreen';
 import PptxGenJS from 'pptxgenjs';
 import { ChevronLeft, ChevronRight, Play, Edit3, Eye, Maximize2, Download, Settings, Send } from 'lucide-react';
 
+declare global {
+  interface Window {
+    mermaid: {
+      initialize: (config: any) => void;
+      render: (id: string, definition: string) => Promise<{ svg: string }>;
+    };
+  }
+}
+
 const PresentationMaker = () => {
   const [input, setInput] = useState(`{
 # Welcome to SlideScript
@@ -68,18 +77,17 @@ Perfect for technical presentations!
 *Made with ❤️ by the SlideScript team*
 }`);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [mode, setMode] = useState('edit'); // 'edit' or 'present'
+  const [mode, setMode] = useState('edit');
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   const [slides, setSlides] = useState<any[]>([]);
-  // Floating input in the Editor tab (doesn't affect slide content)
   const [quickInput, setQuickInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [showProcessingOverlay, setShowProcessingOverlay] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
-  // Load settings from localStorage
   const getSettings = () => {
     const saved = localStorage.getItem('slideScriptSettings');
     if (saved) {
@@ -90,17 +98,15 @@ Perfect for technical presentations!
     return null;
   };
 
-  // Handle smooth fade-out of processing overlay
   const hideProcessingOverlay = () => {
     setIsAnimatingOut(true);
     setTimeout(() => {
       setShowProcessingOverlay(false);
       setIsGenerating(false);
       setIsAnimatingOut(false);
-    }, 500); // Match the fade-out animation duration
+    }, 500);
   };
 
-  // Send scenario to AI and generate presentation
   const handleSendScenario = async () => {
     if (!quickInput.trim()) return;
     
@@ -110,7 +116,6 @@ Perfect for technical presentations!
       return;
     }
 
-    // Additional validation for API keys/URLs
     if (settings.selected === 'openrouter' && !settings.openRouterApiKey) {
       alert('Please enter your OpenRouter API key in Settings');
       return;
@@ -157,6 +162,54 @@ Perfect for technical presentations!
     10. Create 5-10 slides maximum
     11. Slide content should be accurate, detailed, well-structured, and relevant to the topic.
 
+    CHART SUPPORT:
+    - Use Mermaid charts/diagrams with \`\`\`mermaid code blocks
+    - CRITICAL MERMAID SYNTAX RULES:
+      * NO spaces around arrows: A-->B (correct), A --> B (wrong)
+      * Node IDs must be alphanumeric: A, B1, node2 (correct), A-B, node! (wrong)
+      * Quotes for labels: A["Start Process"] or A[Start Process]
+      * Direction first: flowchart TD, sequenceDiagram, pie title Chart
+      * End each line properly - no trailing characters
+    
+    SUPPORTED CHART TYPES & CORRECT SYNTAX:
+    
+    FLOWCHART:
+    \`\`\`mermaid
+    flowchart TD
+        A[Start]-->B{Decision}
+        B-->|Yes|C[Action A]
+        B-->|No|D[Action B]
+        C-->E[End]
+        D-->E
+    \`\`\`
+    
+    PIE CHART:
+    \`\`\`mermaid
+    pie title Market Share
+        "Company A" : 42.5
+        "Company B" : 35.2
+        "Company C" : 22.3
+    \`\`\`
+    
+    SEQUENCE DIAGRAM:
+    \`\`\`mermaid
+    sequenceDiagram
+        participant A as User
+        participant B as System
+        A->>B: Request
+        B-->>A: Response
+    \`\`\`
+    
+    COMMON ERRORS TO AVOID:
+    - Never use special characters in node IDs
+    - Always start with chart type declaration
+    - Use proper arrow syntax (no spaces)
+    - Quote multi-word labels
+    - Don't mix chart types in one block
+    - End lines cleanly without extra punctuation
+    
+    USE CHARTS FOR: processes, workflows, data visualization, comparisons, timelines, hierarchies
+
     RESPOND WITH ONLY THE SLIDES - NOTHING ELSE.
 
     Topic: "${quickInput}"`;
@@ -164,7 +217,6 @@ Perfect for technical presentations!
       let response;
       
       if (settings.selected === 'openrouter') {
-        // OpenRouter API call
         response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -181,7 +233,6 @@ Perfect for technical presentations!
           }),
         });
       } else {
-        // Local Llama API call
         const baseUrl = settings.llamaUrl.endsWith('/') ? settings.llamaUrl.slice(0, -1) : settings.llamaUrl;
         response = await fetch(`${baseUrl}/v1/chat/completions`, {
           method: 'POST',
@@ -208,22 +259,20 @@ Perfect for technical presentations!
       let generatedContent = data.choices[0]?.message?.content;
       
       if (generatedContent) {
-        // Clean up AI response - remove markdown blocks, explanations, etc.
         generatedContent = generatedContent
-          .replace(/```markdown\s*/g, '') // Remove markdown block start
-          .replace(/```\s*$/g, '') // Remove markdown block end
-          .replace(/^.*?(?=\{)/s, '') // Remove everything before first {
-          .replace(/\}[^{]*$/s, '}') // Remove everything after last }
+          .replace(/```markdown\s*/g, '')
+          .replace(/```\s*$/g, '')
+          .replace(/^.*?(?=\{)/s, '')
+          .replace(/\}[^{]*$/s, '}')
           .trim();
           
-        // Validate that content starts with { and contains actual slides
         if (!generatedContent.startsWith('{') || !generatedContent.includes('#')) {
           throw new Error('Invalid presentation format generated');
         }
         
         setInput(generatedContent);
-        setQuickInput(''); // Clear the input
-        hideProcessingOverlay(); // Smooth fade-out
+        setQuickInput('');
+        hideProcessingOverlay();
       } else {
         throw new Error('No content generated from AI response');
       }
@@ -243,17 +292,16 @@ Perfect for technical presentations!
       }
       
       alert(errorMessage);
-      hideProcessingOverlay(); // Smooth fade-out on error too
+      hideProcessingOverlay();
     }
   };
   
   useEffect(() => {
     const parseSlides = () => {
-      // Robustly split slides: only treat { and } on their own lines (outside code blocks) as slide delimiters
       const linesAll = input.split('\n');
       const blocks: string[] = [];
       let current: string[] = [];
-      let inCodeFence = false; // tracks ``` code blocks to avoid treating braces inside as slide separators
+      let inCodeFence = false;
 
       const flush = () => {
         const text = current.join('\n').trim();
@@ -265,7 +313,6 @@ Perfect for technical presentations!
         const line = linesAll[i];
         const trimmed = line.trim();
 
-        // toggle code fence status when encountering a line starting with ```
         if (trimmed.startsWith('```')) {
           inCodeFence = !inCodeFence;
           current.push(line);
@@ -273,14 +320,11 @@ Perfect for technical presentations!
         }
 
         if (!inCodeFence && (trimmed === '{')) {
-          // starting a new slide: flush any previous content (if someone forgot closing brace previously)
           if (current.length) flush();
-          // don't include the opening brace
           continue;
         }
 
         if (!inCodeFence && (trimmed === '}')) {
-          // end of a slide
           flush();
           continue;
         }
@@ -288,7 +332,6 @@ Perfect for technical presentations!
         current.push(line);
       }
 
-      // push any trailing content not followed by a closing brace
       if (current.length) flush();
 
       const newSlides = blocks.map(block => {
@@ -308,7 +351,11 @@ Perfect for technical presentations!
         lines.forEach(line => {
           if (line.trim().startsWith('```')) {
             if (inCodeBlock) {
-              slide.content.push({ type: 'code', text: codeBlockContent.trim(), lang: codeLang });
+              if (codeLang === 'mermaid') {
+                slide.content.push({ type: 'mermaid', text: codeBlockContent.trim(), lang: codeLang });
+              } else {
+                slide.content.push({ type: 'code', text: codeBlockContent.trim(), lang: codeLang });
+              }
               inCodeBlock = false;
               codeBlockContent = '';
               codeLang = '';
@@ -352,6 +399,38 @@ Perfect for technical presentations!
       setCurrentSlide(Math.max(0, slides.length - 1));
     }
   }, [slides.length, currentSlide]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.mermaid) {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif',
+      });
+
+      const mermaidElements = document.querySelectorAll('.mermaid-diagram');
+      mermaidElements.forEach((element, index) => {
+        const id = `mermaid-${Date.now()}-${index}`;
+        element.id = id;
+        
+        const mermaidCode = element.textContent || '';
+        if (mermaidCode.trim()) {
+          window.mermaid.render(id + '-svg', mermaidCode)
+            .then((result: any) => {
+              element.innerHTML = result.svg;
+            })
+            .catch((error: any) => {
+              console.error('Mermaid rendering error:', error);
+              element.innerHTML = `<div class="text-red-500 p-4 border border-red-300 rounded">
+                <strong>Chart Rendering Error:</strong><br/>
+                <code class="text-sm">${error.message || 'Failed to render diagram'}</code>
+              </div>`;
+            });
+        }
+      });
+    }
+  }, [slides, currentSlide]);
 
   const parseInlineMarkdown = (text: string) => {
     return text
@@ -414,6 +493,18 @@ Perfect for technical presentations!
                     </pre>
                   </div>
                 );
+              case 'mermaid':
+                return (
+                  <div key={i} className="my-6 flex justify-center">
+                    <div 
+                      className="mermaid-diagram bg-white p-4 rounded-lg shadow-lg max-w-full overflow-x-auto"
+                      data-mermaid={item.text}
+                      id={`mermaid-${index}-${i}`}
+                    >
+                      {item.text}
+                    </div>
+                  </div>
+                );
               case 'text':
               default:
                 return (
@@ -442,100 +533,255 @@ Perfect for technical presentations!
     }
   };
 
-  const exportToPptx = () => {
-    const pptx = new PptxGenJS();
+  const convertSvgToDataUrl = async (svgElement: SVGElement, targetWidth?: number, targetHeight?: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const timeout = setTimeout(() => {
+          reject(new Error('SVG conversion timed out'));
+        }, 10000);
 
-    slides.forEach(slideData => {
-      const slide = pptx.addSlide();
-
-      const cleanTitle = slideData.title.replace(/<[^>]*>?/gm, '');
-      const cleanSubtitle = slideData.subtitle.replace(/<[^>]*>?/gm, '');
-
-      let yPosition = 0.5;
-
-      // Add title
-      if (cleanTitle) {
-        slide.addText(cleanTitle, { 
-          x: 0.5, y: yPosition, w: '90%', h: 1, 
-          fontSize: 32, bold: true, align: 'center' 
-        });
-        yPosition += 1.5;
-      }
-
-      // Add subtitle
-      if (cleanSubtitle) {
-        slide.addText(cleanSubtitle, { 
-          x: 0.5, y: yPosition, w: '90%', h: 1, 
-          fontSize: 24, align: 'center' 
-        });
-        yPosition += 1.2;
-      }
-
-      // Add bullet points
-      if (slideData.bullets && slideData.bullets.length > 0) {
-        const bulletPoints = slideData.bullets.map((bullet: string) => bullet.replace(/<[^>]*>?/gm, ''));
-        slide.addText(bulletPoints.join('\n'), { 
-          x: 1, y: yPosition, w: '80%', h: bulletPoints.length * 0.5, 
-          fontSize: 18, bullet: true 
-        });
-        yPosition += bulletPoints.length * 0.5 + 0.5;
-      }
-
-      // Add other content (code blocks, quotes, text, etc.)
-      if (slideData.content && slideData.content.length > 0) {
-        slideData.content.forEach((item: any) => {
-          const cleanText = item.text.replace(/<[^>]*>?/gm, '');
-          
-          switch (item.type) {
-            case 'code':
-              // Add code block with monospace font and dark background
-              slide.addText(cleanText, {
-                x: 1, y: yPosition, w: '80%', h: 2,
-                fontSize: 14, fontFace: 'Courier New',
-                color: '00FF00', // Green text like in preview
-                fill: { color: '1a1a1a' }, // Dark background
-                margin: 0.2
-              });
-              yPosition += 2.5;
-              break;
-              
-            case 'quote':
-              // Add quote with italic formatting
-              slide.addText(`"${cleanText}"`, {
-                x: 1.5, y: yPosition, w: '70%', h: 1,
-                fontSize: 16, italic: true,
-                color: '666666'
-              });
-              yPosition += 1.2;
-              break;
-              
-            case 'ordered':
-              // Add numbered item
-              slide.addText(cleanText, {
-                x: 1, y: yPosition, w: '80%', h: 0.8,
-                fontSize: 16
-              });
-              yPosition += 1;
-              break;
-              
-            case 'text':
-            default:
-              // Add regular text
-              slide.addText(cleanText, {
-                x: 1, y: yPosition, w: '80%', h: 0.8,
-                fontSize: 16
-              });
-              yPosition += 1;
-              break;
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        const svgSVGElement = svgElement as SVGSVGElement;
+        const defaultWidth = svgSVGElement.viewBox?.baseVal?.width || svgSVGElement.width?.baseVal?.value || 800;
+        const defaultHeight = svgSVGElement.viewBox?.baseVal?.height || svgSVGElement.height?.baseVal?.value || 600;
+        
+        canvas.width = targetWidth ? Math.round(targetWidth * 96) : Math.min(Math.max(defaultWidth, 800), 1600); // 96 DPI conversion
+        canvas.height = targetHeight ? Math.round(targetHeight * 96) : Math.min(Math.max(defaultHeight, 600), 1200);
+        
+        img.onload = () => {
+          try {
+            clearTimeout(timeout);
+            if (ctx) {
+              ctx.fillStyle = 'white';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+              const dataUrl = canvas.toDataURL('image/png');
+              URL.revokeObjectURL(img.src);
+              resolve(dataUrl);
+            } else {
+              reject(new Error('Could not get canvas context'));
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            reject(error);
           }
-        });
+        };
+        
+        img.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('Failed to load SVG image'));
+        };
+        
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        img.src = url;
+      } catch (error) {
+        reject(error);
       }
     });
-
-    pptx.writeFile({ fileName: 'presentation.pptx' });
   };
 
-  // Slide-up transition for settings screen
+  const exportToPptx = async () => {
+    setIsExporting(true);
+    try {
+      const pptx = new PptxGenJS();
+
+      for (let slideIndex = 0; slideIndex < slides.length; slideIndex++) {
+        const slideData = slides[slideIndex];
+        const slide = pptx.addSlide();
+
+        const cleanTitle = slideData.title.replace(/<[^>]*>?/gm, '');
+        const cleanSubtitle = slideData.subtitle.replace(/<[^>]*>?/gm, '');
+
+        let yPosition = 0.5;
+
+        if (cleanTitle) {
+          slide.addText(cleanTitle, { 
+            x: 0.5, y: yPosition, w: '90%', h: 1, 
+            fontSize: 32, bold: true, align: 'center' 
+          });
+          yPosition += 1.5;
+        }
+
+        if (cleanSubtitle) {
+          slide.addText(cleanSubtitle, { 
+            x: 0.5, y: yPosition, w: '90%', h: 1, 
+            fontSize: 24, align: 'center' 
+          });
+          yPosition += 1.2;
+        }
+
+        if (slideData.bullets && slideData.bullets.length > 0) {
+          const bulletPoints = slideData.bullets.map((bullet: string) => bullet.replace(/<[^>]*>?/gm, ''));
+          slide.addText(bulletPoints.join('\n'), { 
+            x: 1, y: yPosition, w: '80%', h: bulletPoints.length * 0.5, 
+            fontSize: 18, bullet: true 
+          });
+          yPosition += bulletPoints.length * 0.5 + 0.5;
+        }
+
+        if (slideData.content && slideData.content.length > 0) {
+          for (let contentIndex = 0; contentIndex < slideData.content.length; contentIndex++) {
+            const item = slideData.content[contentIndex];
+            const cleanText = item.text.replace(/<[^>]*>?/gm, '');
+            
+            switch (item.type) {
+              case 'code':
+                slide.addText(cleanText, {
+                  x: 1, y: yPosition, w: '80%', h: 2,
+                  fontSize: 14, fontFace: 'Courier New',
+                  color: '00FF00',
+                  fill: { color: '1a1a1a' },
+                  margin: 0.2
+                });
+                yPosition += 2.5;
+                break;
+                
+              case 'quote':
+                slide.addText(`"${cleanText}"`, {
+                  x: 1.5, y: yPosition, w: '70%', h: 1,
+                  fontSize: 16, italic: true,
+                  color: '666666'
+                });
+                yPosition += 1.2;
+                break;
+                
+              case 'ordered':
+                slide.addText(cleanText, {
+                  x: 1, y: yPosition, w: '80%', h: 0.8,
+                  fontSize: 16
+                });
+                yPosition += 1;
+                break;
+                
+              case 'mermaid':
+                try {
+                  console.log('Processing Mermaid chart for export...');
+                  
+                  if (!window.mermaid) {
+                    throw new Error('Mermaid library not available');
+                  }
+
+                  const tempId = `export-mermaid-${slideIndex}-${contentIndex}-${Date.now()}`;
+                  
+                  const renderPromise = window.mermaid.render(tempId, item.text);
+                  const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Mermaid render timeout')), 5000)
+                  );
+                  
+                  const result = await Promise.race([renderPromise, timeoutPromise]) as any;
+                  console.log('Mermaid rendered successfully');
+                  
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = result.svg;
+                  const svgElement = tempDiv.querySelector('svg') as SVGElement;
+                  
+                  if (svgElement) {
+                    console.log('Converting SVG to image...');
+                    
+                    const svgSVGElement = svgElement as SVGSVGElement;
+                    const svgWidth = svgSVGElement.viewBox?.baseVal?.width || svgSVGElement.width?.baseVal?.value || 800;
+                    const svgHeight = svgSVGElement.viewBox?.baseVal?.height || svgSVGElement.height?.baseVal?.value || 600;
+                    
+                    const maxWidth = 8;
+                    const maxHeight = 5;
+                    const aspectRatio = svgWidth / svgHeight;
+                    
+                    let finalWidth = maxWidth;
+                    let finalHeight = maxWidth / aspectRatio;
+                    
+                    if (finalHeight > maxHeight) {
+                      finalHeight = maxHeight;
+                      finalWidth = maxHeight * aspectRatio;
+                    }
+                    
+                    const xPosition = (10 - finalWidth) / 2;
+                    
+                    try {
+                      const svgString = new XMLSerializer().serializeToString(svgElement);
+                      const svgDataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgString)))}`;
+                      
+                      slide.addImage({
+                        data: svgDataUrl,
+                        x: xPosition, 
+                        y: yPosition, 
+                        w: finalWidth, 
+                        h: finalHeight,
+                        sizing: { 
+                          type: 'contain', 
+                          w: finalWidth, 
+                          h: finalHeight 
+                        }
+                      });
+                      console.log(`SVG added successfully - Size: ${finalWidth}x${finalHeight}, Position: ${xPosition},${yPosition}`);
+                      yPosition += finalHeight + 0.5;
+                    } catch (svgError) {
+                      console.log('SVG direct embed failed, trying canvas conversion...', svgError);
+                      
+                      const imageDataUrl = await convertSvgToDataUrl(svgElement, finalWidth, finalHeight);
+                      
+                      slide.addImage({
+                        data: imageDataUrl,
+                        x: xPosition, 
+                        y: yPosition, 
+                        w: finalWidth, 
+                        h: finalHeight,
+                        sizing: { 
+                          type: 'contain', 
+                          w: finalWidth, 
+                          h: finalHeight 
+                        }
+                      });
+                      console.log(`Canvas conversion successful - Size: ${finalWidth}x${finalHeight}, Position: ${xPosition},${yPosition}`);
+                      yPosition += finalHeight + 0.5;
+                    }
+                  } else {
+                    throw new Error('Failed to extract SVG element');
+                  }
+                } catch (error) {
+                  console.error('Error processing Mermaid chart:', error);
+                  slide.addText(`[Chart/Diagram - Processing Error]`, {
+                    x: 1, y: yPosition, w: '80%', h: 1,
+                    fontSize: 16, italic: true,
+                    color: 'CC0000',
+                    fill: { color: 'FFE6E6' },
+                    margin: 0.2
+                  });
+                  slide.addText(`Diagram Definition:\n${cleanText}`, {
+                    x: 1, y: yPosition + 1.2, w: '80%', h: 2,
+                    fontSize: 12, fontFace: 'Courier New',
+                    color: '666666'
+                  });
+                  yPosition += 3.5;
+                }
+                break;
+                
+              case 'text':
+              default:
+                slide.addText(cleanText, {
+                  x: 1, y: yPosition, w: '80%', h: 0.8,
+                  fontSize: 16
+                });
+                yPosition += 1;
+                break;
+            }
+          }
+        }
+      }
+
+      await pptx.writeFile({ fileName: 'presentation.pptx' });
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Error exporting presentation. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (showSettings) {
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/10">
@@ -623,17 +869,18 @@ Perfect for technical presentations!
           
           <div className="flex items-center space-x-1 sm:space-x-3">
             <button
-              onClick={exportToPptx}
-              className="hidden sm:flex px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-3xl transition-colors items-center space-x-2"
+              onClick={() => exportToPptx().catch(console.error)}
+              disabled={isExporting}
+              className="hidden sm:flex px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-3xl transition-colors items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={16} />
-              <span>Export PPTX</span>
+              <span>{isExporting ? 'Exporting...' : 'Export PPTX'}</span>
             </button>
             
-            {/* Mobile export button - icon only */}
             <button
-              onClick={exportToPptx}
-              className="sm:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => exportToPptx().catch(console.error)}
+              disabled={isExporting}
+              className="sm:hidden p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={18} />
             </button>
@@ -651,8 +898,7 @@ Perfect for technical presentations!
       </header>
 
       <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Editor Section - Order 2 on mobile, Order 1 on large screens */}
-  <div className="w-full lg:w-1/2 lg:border-r border-gray-200 order-2 lg:order-1 relative">
+        <div className="w-full lg:w-1/2 lg:border-r border-gray-200 order-2 lg:order-1 relative">
           <div className="h-12 sm:h-16 px-3 sm:px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800 flex items-center space-x-1 sm:space-x-2 text-base sm:text-lg md:text-xl">
               <Edit3 size={16} className="sm:hidden" />
@@ -674,7 +920,6 @@ Perfect for technical presentations!
             style={{ minHeight: 'calc(50vh - 120px)', maxHeight: 'calc(100vh - 180px)' }}
           />
 
-          {/* Floating input limited to the Editor tab - Fixed to viewport */}
           <div className="pointer-events-none fixed bottom-6 sm:bottom-8 left-0 lg:left-0 right-0 lg:right-1/2 z-30 px-3 sm:px-4">
             <div className="relative pointer-events-auto mx-auto max-w-[500px] sm:max-w-[620px]">
               <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 z-10">
@@ -729,7 +974,6 @@ Perfect for technical presentations!
           </div>
         </div>
 
-        {/* Preview Section - Order 1 on mobile, Order 2 on large screens */}
         <div className="w-full lg:w-1/2 bg-white flex flex-col order-1 lg:order-2 border-b lg:border-b-0 border-gray-200">
           <div className="h-12 sm:h-16 px-3 sm:px-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800 flex items-center space-x-1 sm:space-x-2 text-base sm:text-lg md:text-xl">
@@ -768,7 +1012,6 @@ Perfect for technical presentations!
           <div className="flex-1 relative overflow-hidden">
             {slides.length > 0 ? (
               <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4">
-                {/* On mobile, keep slide at 100% size to avoid extra whitespace; only oversize + scale at lg */}
                 <div className="bg-white rounded-lg shadow-lg transform origin-top-left w-full h-full lg:w-[133.33%] lg:h-[133.33%] scale-100 sm:scale-95 lg:scale-75">
                   {renderSlide(slides[currentSlide], currentSlide)}
                 </div>
@@ -786,7 +1029,6 @@ Perfect for technical presentations!
         </div>
       </div>
 
-      {/* Full-screen loading overlay with smooth animations */}
       {showProcessingOverlay && (
         <div className={`fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center ${
           isAnimatingOut ? 'animate-processingFadeOut' : 'animate-processingFadeIn'

@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 
 const SettingsScreen = ({ onBack }: { onBack: () => void }) => {
-  // State for settings
   const [selected, setSelected] = useState<'openrouter' | 'llama' | null>(null);
   const [openRouterApiKey, setOpenRouterApiKey] = useState('');
   const [openRouterModelName, setOpenRouterModelName] = useState('');
   const [llamaModelName, setLlamaModelName] = useState('');
   const [llamaUrl, setLlamaUrl] = useState('http://localhost:11434');
 
-  // Load from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('slideScriptSettings');
     if (saved) {
@@ -24,25 +22,16 @@ const SettingsScreen = ({ onBack }: { onBack: () => void }) => {
     }
   }, []);
 
-  // Save button state
   const [justSaved, setJustSaved] = useState(false);
-  
-  // Icon animation state
   const [showingIcon, setShowingIcon] = useState<string | null>(null);
 
-  // Handle card selection with icon animation
   const handleCardSelection = (cardType: 'openrouter' | 'llama') => {
     setSelected(cardType);
-    
-    // Show icon animation
     const iconPath = cardType === 'openrouter' ? '/open-router.png' : '/ollama-gray.png';
     setShowingIcon(iconPath);
-    
-    // Hide icon after 2 seconds
     setTimeout(() => setShowingIcon(null), 2000);
   };
 
-  // Save handler
   const handleSave = () => {
     const obj = {
       selected,
@@ -80,7 +69,6 @@ const SettingsScreen = ({ onBack }: { onBack: () => void }) => {
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-4">
         <form className="w-full max-w-2xl flex flex-col gap-8 items-stretch justify-center" onSubmit={e => e.preventDefault()}>
-          {/* OpenRouter Model Card */}
           <div className={`bg-white border rounded-2xl p-6 flex-1 flex flex-col shadow-sm ${selected === 'openrouter' ? 'border-green-500' : 'border-gray-200'}`}> 
             <div className="flex items-center justify-between mb-4">
               <span className="flex items-center gap-2 text-lg font-semibold text-gray-800">
@@ -123,8 +111,6 @@ const SettingsScreen = ({ onBack }: { onBack: () => void }) => {
               <div className="text-xs text-gray-500 mt-2">Base URL: <span className="font-mono">https://openrouter.ai/api/v1</span></div>
             </div>
           </div>
-
-          {/* Local Llama Model Card */}
           <div className={`bg-white border rounded-2xl p-6 flex-1 flex flex-col shadow-sm ${selected === 'llama' ? 'border-green-500' : 'border-gray-200'}`}> 
             <div className="flex items-center justify-between mb-4">
               <span className="flex items-center gap-2 text-lg font-semibold text-gray-800">
@@ -171,8 +157,6 @@ const SettingsScreen = ({ onBack }: { onBack: () => void }) => {
           </div>
         </form>
       </main>
-      
-      {/* Icon animation overlay */}
       {showingIcon && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div className="animate-iconFade">

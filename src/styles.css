@@ -1,4 +1,3 @@
-/* Slide-up animation for settings screen */
 .animate-slideup {
 	animation: slideup 0.4s cubic-bezier(0.4, 0.8, 0.2, 1);
 }
@@ -14,7 +13,6 @@
 	}
 }
 
-/* Icon fade animation for settings card selection */
 .animate-iconFade {
 	animation: iconFade 2s ease-in-out;
 }
@@ -38,7 +36,6 @@
 	}
 }
 
-/* Processing overlay animations */
 .animate-processingFadeIn {
 	animation: processingFadeIn 0.5s ease-out forwards;
 }
@@ -69,7 +66,6 @@
 	}
 }
 
-/* GIF fade animations */
 .animate-gifFadeIn {
 	animation: gifFadeIn 0.6s ease-out forwards;
 }
@@ -100,7 +96,6 @@
 	}
 }
 
-/* Smooth slow blinking animation for processing GIF */
 .animate-slowBlink {
 	animation: slowBlink 2s ease-in-out infinite;
 }
@@ -114,7 +109,6 @@
 	}
 }
 
-/* Shiny text animation */
 .animate-shinyText {
 	background: linear-gradient(90deg, 
 		rgba(255, 255, 255, 0.8) 0%, 
